@@ -1,123 +1,167 @@
-# CopilotKit <> LangGraph Starter
+# Scene Creator - CopilotKit + LangGraph + Gemini 3 Demo
 
-This is a starter template for building AI agents using [LangGraph](https://www.langchain.com/langgraph) and [CopilotKit](https://copilotkit.ai). It provides a modern Next.js application with an integrated LangGraph agent to be built on top of.
+A demo app showcasing [CopilotKit](https://copilotkit.ai) integration with [LangGraph](https://www.langchain.com/langgraph) and Google's Gemini 3 models. Generate AI-powered scenes by creating characters, backgrounds, and combining them together.
 
-## Prerequisites
+## What This Demo Shows
 
+- **CopilotKit + LangGraph Integration** - Connect a Python LangGraph agent to a Next.js frontend
+- **Shared State Pattern** - Bidirectional state sync between frontend and agent
+- **Human-in-the-Loop (HITL)** - Approve/reject AI actions before execution
+- **Generative UI** - Real-time tool execution feedback in chat
+- **Dynamic API Keys** - Pass API keys from frontend to agent at runtime
+- **Image Generation** - Using Gemini 3 and Nano Banana (gemini-2.5-flash-image)
+
+## Demo Features
+
+| Feature | Description |
+|---------|-------------|
+| Character Generation | Create characters with AI-generated images |
+| Background Generation | Generate environments and scenes |
+| Scene Composition | Combine characters and backgrounds |
+| Image Editing | Modify generated images with natural language |
+| HITL Approval | Review and approve image prompts before generation |
+
+## Quick Start
+
+### Prerequisites
 - Node.js 18+
 - Python 3.10+
-- Any of the following JavaScript package managers:
-  - [pnpm](https://pnpm.io/installation) (recommended)
-  - npm
-  - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
-  - [bun](https://bun.sh/)
-- Python package manager (one of):
-  - [uv](https://docs.astral.sh/uv/) (recommended for faster installs)
-  - pip (included with Python)
-- Google AI API Key (for Gemini 3 and Nano Banana)
+- Google AI API Key ([get one here](https://makersuite.google.com/app/apikey))
 
-> **Note:** This repository ignores lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb) to avoid conflicts between different package managers. Each developer should generate their own lock file using their preferred package manager. After that, make sure to delete it from the .gitignore.
+### Setup
 
-## Getting Started
-
-1. Install dependencies using your preferred package manager:
 ```bash
-# Using pnpm (recommended)
-pnpm install
-
-# Using npm
+# 1. Install dependencies
 npm install
 
-# Using yarn
-yarn install
+# 2. Set up your API key
+echo 'GOOGLE_API_KEY=your-key-here' > agent/.env
 
-# Using bun
-bun install
-```
-
-> **Note:** Installing the package dependencies will also install the agent's Python dependencies via the `install:agent` script. The script will automatically use `uv` if available, otherwise it falls back to `pip`.
-
-2. Set up your Google AI API key:
-```bash
-echo 'GOOGLE_API_KEY=your-google-ai-api-key-here' > agent/.env
-```
-
-Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
-
-3. Start the development server:
-```bash
-# Using pnpm
-pnpm dev
-
-# Using npm
+# 3. Start the app
 npm run dev
-
-# Using yarn
-yarn dev
-
-# Using bun
-bun run dev
 ```
 
-This will start both the UI and agent servers concurrently.
+Open [http://localhost:3000](http://localhost:3000) and start creating!
 
-## Available Scripts
-The following scripts can also be run using your preferred package manager:
-- `dev` - Starts both UI and agent servers in development mode
-- `dev:debug` - Starts development servers with debug logging enabled
-- `dev:ui` - Starts only the Next.js UI server
-- `dev:agent` - Starts only the LangGraph agent server
-- `build` - Builds the Next.js application for production
-- `start` - Starts the production server
-- `lint` - Runs ESLint for code linting
-- `install:agent` - Installs Python dependencies (uses `uv` if available, otherwise `pip`)
+## Project Structure
 
-## Documentation
+```
+├── src/
+│   ├── app/
+│   │   ├── page.tsx          # Main UI with CopilotKit integration
+│   │   └── api/copilotkit/   # CopilotKit API route
+│   ├── components/
+│   │   ├── ArtifactPanel.tsx # Display generated artifacts
+│   │   ├── ApiKeyInput.tsx   # Dynamic API key management
+│   │   └── CustomChatInput.tsx
+│   └── lib/
+│       └── types.ts          # Shared TypeScript types
+├── agent/
+│   ├── agent.py              # LangGraph agent with tools
+│   ├── server.py             # Custom routes (static files)
+│   └── langgraph.json        # LangGraph configuration
+```
 
-The main UI component is in `src/app/page.tsx`. You can:
-- Modify the theme colors and styling
-- Add new frontend actions
-- Customize the CopilotKit sidebar appearance
+## Key CopilotKit Patterns
 
-## 📚 Documentation
+### 1. Shared State (Frontend ↔ Agent)
 
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/) - Learn more about LangGraph and its features
-- [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
-- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
-- [YFinance Documentation](https://pypi.org/project/yfinance/) - Financial data tools
+```typescript
+// Frontend: src/app/page.tsx
+const { state, setState } = useCoAgent<AgentState>({
+  name: "sample_agent",
+  initialState: { characters: [], backgrounds: [], scenes: [] },
+});
 
-## Contributing
+// Update state from frontend
+setState((prev) => ({ ...prev, apiKey: newKey }));
+```
 
-Feel free to submit issues and enhancement requests! This starter is designed to be easily extensible.
+```python
+# Agent: agent/agent.py
+class AgentState(MessagesState):
+    characters: List[dict] = []
+    backgrounds: List[dict] = []
+    scenes: List[dict] = []
+    apiKey: str = ""
+
+# Read state in agent
+api_key = state.get("apiKey", "")
+```
+
+### 2. Human-in-the-Loop (HITL)
+
+```typescript
+// Frontend: Enable HITL for specific tool
+useCopilotAction({
+  name: "approve_image_prompt",
+  disabled: true,  // Agent calls this, not user
+  handler: async ({ prompt }) => {
+    // Show approval UI, return approved/rejected
+  },
+});
+```
+
+### 3. Generative UI
+
+```typescript
+// Show real-time tool progress
+useCopilotAction({
+  name: "create_character",
+  render: ({ status, result }) => (
+    <ToolCard status={status} result={result} />
+  ),
+});
+```
+
+### 4. LangGraph Agent Tools
+
+```python
+# agent/agent.py
+@tool
+async def create_character(
+    name: str,
+    description: str,
+    prompt: str,
+    state: Annotated[dict, InjectedState]  # Access shared state
+) -> dict:
+    api_key = state.get("apiKey", "")
+    image_url = await generate_image(prompt, api_key=api_key)
+    return {"name": name, "description": description, "imageUrl": image_url}
+```
+
+## Deployment
+
+Deploy the agent to Railway:
+
+```bash
+cd agent
+railway link
+railway up
+railway variables --set "AGENT_URL=https://your-app.up.railway.app"
+railway variables --set "GOOGLE_API_KEY=your-key"
+```
+
+See [agent/DEPLOY.md](agent/DEPLOY.md) for detailed deployment guide.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16, React 19, Tailwind CSS 4 |
+| AI Integration | CopilotKit 1.10.6 |
+| Agent | Python, LangGraph 0.6.6 |
+| LLM | Gemini 3 Pro Preview |
+| Image Gen | Nano Banana (gemini-2.5-flash-image) |
+
+## Learn More
+
+- [CopilotKit Docs](https://docs.copilotkit.ai) - Full CopilotKit documentation
+- [LangGraph + CopilotKit Guide](https://docs.copilotkit.ai/coagents/langgraph/langgraph-native-python) - Integration guide
+- [Shared State Pattern](https://docs.copilotkit.ai/coagents/langgraph/shared-state) - State synchronization
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT
 
-## Troubleshooting
-
-### Agent Connection Issues
-If you see "I'm having trouble connecting to my tools", make sure:
-1. The LangGraph agent is running on port 8123
-2. Your Google AI API key is set correctly in `agent/.env`
-3. Both servers started successfully
-
-### Python Dependencies
-If you encounter Python import errors, try reinstalling:
-```bash
-npm run install:agent
-```
-
-Or install manually using uv (recommended):
-```bash
-cd agent
-uv pip install -r requirements.txt
-```
-
-Or using pip:
-```bash
-cd agent
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
+Built by Mark Morgan
