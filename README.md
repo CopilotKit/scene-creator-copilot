@@ -2,6 +2,8 @@
 
 A demo app showcasing [CopilotKit](https://copilotkit.ai) integration with [LangGraph](https://www.langchain.com/langgraph) and Google's Gemini 3 models. Generate AI-powered scenes by creating characters, backgrounds, and combining them together.
 
+https://github.com/user-attachments/assets/3c60c2b8-5ccd-42f0-817f-0e5e22398a48
+
 ## What This Demo Shows
 
 - **CopilotKit + LangGraph Integration** - Connect a Python LangGraph agent to a Next.js frontend
